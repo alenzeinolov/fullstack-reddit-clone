@@ -1,6 +1,6 @@
 import path from "path";
 import { MikroORM } from "@mikro-orm/core";
-import { DEBUG } from "./constants";
+// import { DEBUG } from "./constants";
 import { Post } from "./entities/Post";
 
 export default {
