@@ -8,6 +8,7 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from "type-graphql";
 
@@ -49,9 +50,19 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { em, req }: MyContext): Promise<User | null> {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const user = await em.findOne(User, { id: req.session.userId });
+    return user;
+  }
+
   @Mutation(() => UserResponse)
   async login(
-    @Ctx() { em }: MyContext,
+    @Ctx() { em, req }: MyContext,
     @Arg("options") options: LoginInput
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
@@ -79,12 +90,14 @@ export class UserResolver {
       };
     }
 
+    req.session.userId = user.id;
+
     return { user };
   }
 
   @Mutation(() => UserResponse)
   async register(
-    @Ctx() { em }: MyContext,
+    @Ctx() { em, req }: MyContext,
     @Arg("options") options: RegisterInput
   ): Promise<UserResponse> {
     if (options.username.length <= 2) {
@@ -127,6 +140,8 @@ export class UserResolver {
       password: hashedPassword,
     });
     await em.persistAndFlush(user);
+
+    req.session.userId = user.id;
 
     return { user };
   }
