@@ -4,7 +4,6 @@ import {
   Arg,
   Ctx,
   Field,
-  InputType,
   Mutation,
   ObjectType,
   Query,
@@ -12,24 +11,8 @@ import {
 } from "type-graphql";
 import { User } from "../entities/User";
 import { MyContext } from "../types";
-
-@InputType()
-class LoginInput {
-  @Field()
-  username: string;
-
-  @Field()
-  password: string;
-}
-
-@InputType()
-class RegisterInput {
-  @Field()
-  username: string;
-
-  @Field()
-  password: string;
-}
+import { RegisterInput } from "./RegisterInput";
+import { validateRegister } from "../utils/validateRegister";
 
 @ObjectType()
 class FieldError {
@@ -64,22 +47,28 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Ctx() { em, req }: MyContext,
-    @Arg("options") options: LoginInput
+    @Arg("usernameOrEmail") usernameOrEmail: string,
+    @Arg("password") password: string
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: options.username });
+    const user = await em.findOne(
+      User,
+      usernameOrEmail.includes("@")
+        ? { email: usernameOrEmail }
+        : { username: usernameOrEmail }
+    );
 
     if (!user) {
       return {
         errors: [
           {
-            field: "username",
-            message: "User with username is not found.",
+            field: "usernameOrEmail",
+            message: "User with this username or email is not found.",
           },
         ],
       };
     }
 
-    const valid = await argon2.verify(user.password, options.password);
+    const valid = await argon2.verify(user.password, password);
     if (!valid) {
       return {
         errors: [
@@ -101,26 +90,9 @@ export class UserResolver {
     @Ctx() { em, req }: MyContext,
     @Arg("options") options: RegisterInput
   ): Promise<UserResponse> {
-    if (options.username.length <= 2) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "Length must be greater than 2.",
-          },
-        ],
-      };
-    }
-
-    if (options.password.length <= 2) {
-      return {
-        errors: [
-          {
-            field: "password",
-            message: "Length must be greater than 2.",
-          },
-        ],
-      };
+    const errors = validateRegister(options);
+    if (errors) {
+      return { errors };
     }
 
     const checkUser = await em.findOne(User, { username: options.username });
@@ -138,6 +110,7 @@ export class UserResolver {
     const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       username: options.username,
+      email: options.email,
       password: hashedPassword,
     });
     await em.persistAndFlush(user);
@@ -160,5 +133,11 @@ export class UserResolver {
         resolve(true);
       });
     });
+  }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(@Arg("email") email: string, @Ctx() { em }: MyContext) {
+    // const user = await em.findOne(User, { email });
+    return true;
   }
 }
