@@ -1,5 +1,5 @@
 import argon2 from "argon2";
-import { COOKIE_NAME } from "../constants";
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
 import {
   Arg,
   Ctx,
@@ -13,6 +13,8 @@ import { User } from "../entities/User";
 import { MyContext } from "../types";
 import { RegisterInput } from "./RegisterInput";
 import { validateRegister } from "../utils/validateRegister";
+import { sendEmail } from "../utils/sendEmail";
+import { v4 } from "uuid";
 
 @ObjectType()
 class FieldError {
@@ -136,8 +138,66 @@ export class UserResolver {
   }
 
   @Mutation(() => Boolean)
-  async forgotPassword(@Arg("email") email: string, @Ctx() { em }: MyContext) {
-    // const user = await em.findOne(User, { email });
+  async forgotPassword(
+    @Arg("email") email: string,
+    @Ctx() { em, redis }: MyContext
+  ) {
+    const user = await em.findOne(User, { email });
+    if (!user) {
+      return true;
+    }
+
+    const token = v4();
+
+    await redis.set(
+      FORGET_PASSWORD_PREFIX + token,
+      user.id,
+      "ex",
+      1000 * 60 * 60 * 24 * 3 // 3 days
+    );
+
+    sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">Reset Password</a>`
+    );
+
     return true;
+  }
+
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Ctx() { em, redis }: MyContext,
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string
+  ): Promise<UserResponse> {
+    const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
+
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "email",
+            message: "Invalid token.",
+          },
+        ],
+      };
+    }
+
+    const user = await em.findOne(User, { id: +userId });
+
+    if (!user) {
+      return {
+        errors: [
+          {
+            field: "email",
+            message: "Error",
+          },
+        ],
+      };
+    }
+
+    return {
+      user,
+    };
   }
 }

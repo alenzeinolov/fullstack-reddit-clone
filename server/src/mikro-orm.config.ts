@@ -1,6 +1,6 @@
 import { MikroORM } from "@mikro-orm/core";
 import path from "path";
-// import { DEBUG } from "./constants";
+import { DEBUG } from "./constants";
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 
@@ -8,7 +8,7 @@ export default {
   entities: [Post, User],
   dbName: "reddit",
   type: "postgresql",
-  debug: true,
+  debug: DEBUG,
   migrations: {
     path: path.join(__dirname, "migrations"),
     pattern: /^[\w-]+\d+\.[jt]s$/,
