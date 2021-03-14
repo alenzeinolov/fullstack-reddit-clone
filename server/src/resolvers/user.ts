@@ -166,17 +166,29 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async changePassword(
-    @Ctx() { em, redis }: MyContext,
+    @Ctx() { req, em, redis }: MyContext,
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string
   ): Promise<UserResponse> {
-    const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
+    if (newPassword.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "Lenght must be greather than 2.",
+          },
+        ],
+      };
+    }
+
+    const key = FORGET_PASSWORD_PREFIX + token;
+    const userId = await redis.get(key);
 
     if (!userId) {
       return {
         errors: [
           {
-            field: "email",
+            field: "token",
             message: "Invalid token.",
           },
         ],
@@ -189,12 +201,21 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: "email",
-            message: "Error",
+            field: "newPassword",
+            message: "User no longer exists.",
           },
         ],
       };
     }
+
+    user.password = await argon2.hash(newPassword);
+    await em.persistAndFlush(user);
+
+    // Delete token
+    redis.del(key);
+
+    // Log user in
+    req.session.userId = user.id;
 
     return {
       user,
