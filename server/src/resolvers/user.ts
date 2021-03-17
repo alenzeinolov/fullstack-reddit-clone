@@ -95,25 +95,29 @@ export class UserResolver {
       return { errors };
     }
 
-    const checkUser = await User.find({ username: options.username });
-    if (checkUser) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "This username is already taken.",
-          },
-        ],
-      };
-    }
-
     const hashedPassword = await argon2.hash(options.password);
-    const user = User.create({
-      username: options.username,
-      email: options.email,
-      password: hashedPassword,
-    });
-    user.save();
+    let user;
+    try {
+      user = User.create({
+        username: options.username,
+        email: options.email,
+        password: hashedPassword,
+      });
+      await user.save();
+    } catch (err) {
+      if (err.code === "23505") {
+        return {
+          errors: [
+            {
+              field: "username",
+              message: "Username or email alraedy taken.",
+            },
+          ],
+        };
+      } else {
+        throw err;
+      }
+    }
 
     req.session.userId = user.id;
 
