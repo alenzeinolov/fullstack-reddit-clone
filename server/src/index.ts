@@ -15,17 +15,20 @@ import { MyContext } from "./types";
 import { createConnection } from "typeorm";
 import { User } from "./entities/User";
 import { Post } from "./entities/Post";
+import path from "path";
 
 const main = async () => {
-  await createConnection({
+  const conn = await createConnection({
     type: "postgres",
     database: "reddit",
     username: "postgres",
     password: "postgres",
     logging: true,
     synchronize: true,
+    migrations: [path.join(__dirname, "migrations", "*")],
     entities: [User, Post],
   });
+  conn.runMigrations();
 
   const app = express();
 
