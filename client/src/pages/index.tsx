@@ -1,4 +1,4 @@
-import { Link } from "@chakra-ui/react";
+import { Box, Heading, Link, Stack, Text } from "@chakra-ui/react";
 import { withUrqlClient } from "next-urql";
 import NextLink from "next/link";
 import React from "react";
@@ -22,7 +22,14 @@ const Index = () => {
       {!data ? (
         <div>loading...</div>
       ) : (
-        data.posts.map((post) => <div key={post.id}>{post.title}</div>)
+        <Stack spacing={8}>
+          {data.posts.map((post) => (
+            <Box key={post.id} p={5} shadow="md" borderWidth="1px">
+              <Heading fontSize="xl">{post.title}</Heading>
+              <Text mt={4}>{post.text.slice(0, 50) + "..."}</Text>
+            </Box>
+          ))}
+        </Stack>
       )}
     </Layout>
   );
