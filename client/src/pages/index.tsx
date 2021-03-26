@@ -1,36 +1,72 @@
-import { Box, Heading, Link, Stack, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Flex,
+  Heading,
+  Link,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 import { withUrqlClient } from "next-urql";
 import NextLink from "next/link";
-import React from "react";
+import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { usePostsQuery } from "../generated/graphql";
 import { createUrqlClient } from "../utils/createUrqlClient";
 
 const Index = () => {
-  const [{ data }] = usePostsQuery({
-    variables: {
-      limit: 10,
-    },
+  const [variables, setVariables] = useState({
+    limit: 10,
+    cursor: null as null | string,
   });
+  const [{ data, fetching }] = usePostsQuery({
+    variables,
+  });
+
+  if (!fetching && !data) {
+    return <div>No data for some reason...</div>;
+  }
 
   return (
     <Layout>
-      <NextLink href="/create-post">
-        <Link>Create Post</Link>
-      </NextLink>
+      <Flex align="center">
+        <Heading>Reddit</Heading>
+        <NextLink href="/create-post">
+          <Link ml="auto">Create Post</Link>
+        </NextLink>
+      </Flex>
       <br />
-      {!data ? (
-        <div>loading...</div>
+      {fetching && !data ? (
+        <div>Loading...</div>
       ) : (
         <Stack spacing={8}>
-          {data.posts.map((post) => (
+          {data!.posts.map((post) => (
             <Box key={post.id} p={5} shadow="md" borderWidth="1px">
               <Heading fontSize="xl">{post.title}</Heading>
-              <Text mt={4}>{post.text.slice(0, 50) + "..."}</Text>
+              <Text mt={4}>{post.textSnippet}</Text>
             </Box>
           ))}
         </Stack>
       )}
+      {data ? (
+        <Flex>
+          <Button
+            variant="solid"
+            colorScheme="teal"
+            mx="auto"
+            isLoading={fetching}
+            my={8}
+            onClick={() =>
+              setVariables({
+                limit: variables.limit,
+                cursor: data.posts[data.posts.length - 1].createdAt,
+              })
+            }
+          >
+            Load more
+          </Button>
+        </Flex>
+      ) : null}
     </Layout>
   );
 };
