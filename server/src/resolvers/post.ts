@@ -47,19 +47,39 @@ export class PostResolver {
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
     const fakeLimit = realLimit + 1;
-    const qb = getConnection()
-      .getRepository(Post)
-      .createQueryBuilder("p")
-      .orderBy('"createdAt"', "DESC")
-      .take(fakeLimit);
 
+    const replacements: any[] = [fakeLimit];
     if (cursor) {
-      qb.where('"createdAt" < :cursor', {
-        cursor: new Date(parseInt(cursor)),
-      });
+      replacements.push(new Date(parseInt(cursor)));
     }
+    const posts = await getConnection().query(
+      `
+      select p.*,
+      json_build_object(
+        'id', u.id,
+        'username', u.username,
+        'email', u.email
+      ) creator
+      from post p
+      inner join "user" u on u.id = p."creatorId"
+      ${cursor ? `where p."createdAt" < $2` : ""}
+      order by "createdAt" DESC
+      limit $1
+      `,
+      replacements
+    );
 
-    const posts = await qb.getMany();
+    // const qb = getConnection()
+    //   .getRepository(Post)
+    //   .createQueryBuilder("p")
+    //   .orderBy('"createdAt"', "DESC")
+    //   .take(fakeLimit);
+
+    // if (cursor) {
+    //   qb.where('"createdAt" < :cursor', {
+    //     cursor: new Date(parseInt(cursor)),
+    //   });
+    // }
 
     return {
       posts: posts.slice(0, realLimit),
