@@ -6,16 +6,16 @@ import cors from "cors";
 import express from "express";
 import session from "express-session";
 import Redis from "ioredis";
+import path from "path";
 import { buildSchema } from "type-graphql";
+import { createConnection } from "typeorm";
 import { COOKIE_NAME, DEBUG } from "./constants";
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
-import { createConnection } from "typeorm";
-import { User } from "./entities/User";
-import { Post } from "./entities/Post";
-import path from "path";
 
 const main = async () => {
   const conn = await createConnection({
