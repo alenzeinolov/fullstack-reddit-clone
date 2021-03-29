@@ -1,4 +1,3 @@
-import { Post } from "../entities/Post";
 import {
   Arg,
   Ctx,
@@ -13,9 +12,11 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { MyContext } from "../types";
-import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
+import { Post } from "../entities/Post";
+import { Vote } from "../entities/Vote";
+import { isAuth } from "../middleware/isAuth";
+import { MyContext } from "../types";
 
 @ObjectType()
 class PaginatedPosts {
@@ -121,6 +122,35 @@ export class PostResolver {
   @Mutation(() => Boolean)
   async deletePost(@Arg("id") id: number): Promise<boolean> {
     await Post.delete({ id });
+
+    return true;
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Ctx() { req }: MyContext,
+    @Arg("postId", () => Int) postId: number,
+    @Arg("value", () => Int) value: number
+  ): Promise<boolean> {
+    const { userId } = req.session;
+    const isUpvote = value !== -1;
+    const vote = isUpvote ? 1 : -1;
+
+    getConnection().query(
+      `
+      start transaction;
+
+      insert into "vote" ("value", "postId", "userId")
+      values (${vote}, ${postId}, ${userId});
+
+      update "post"
+      set points = points + ${vote}
+      where id = ${postId};
+
+      commit;
+      `
+    );
 
     return true;
   }

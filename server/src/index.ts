@@ -16,6 +16,7 @@ import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
+import { Vote } from "./entities/Vote";
 
 const main = async () => {
   const conn = await createConnection({
@@ -26,7 +27,7 @@ const main = async () => {
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, "migrations", "*")],
-    entities: [User, Post],
+    entities: [User, Post, Vote],
   });
   conn.runMigrations();
 
