@@ -3,6 +3,7 @@ import {
   Button,
   Flex,
   Heading,
+  IconButton,
   Link,
   Stack,
   Text,
@@ -13,6 +14,7 @@ import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { usePostsQuery } from "../generated/graphql";
 import { createUrqlClient } from "../utils/createUrqlClient";
+import { ChevronUpIcon, ChevronDownIcon } from "@chakra-ui/icons";
 
 const Index = () => {
   const [variables, setVariables] = useState({
@@ -42,9 +44,26 @@ const Index = () => {
         <Stack spacing={8}>
           {data!.posts.posts.map((post) => (
             <Box key={post.id} p={5} shadow="md" borderWidth="1px">
-              <Heading fontSize="xl">{post.title}</Heading>{" "}
-              <Text>Posted by {post.creator.username}</Text>
-              <Text mt={4}>{post.textSnippet}</Text>
+              <Flex>
+                <Flex
+                  direction="column"
+                  justifyContent="center"
+                  alignItems="center"
+                  mr={4}
+                >
+                  <IconButton aria-label="Upvote" icon={<ChevronUpIcon />} />
+                  {post.points}
+                  <IconButton
+                    aria-label="Downvote"
+                    icon={<ChevronDownIcon />}
+                  />
+                </Flex>
+                <Box>
+                  <Heading fontSize="xl">{post.title}</Heading>{" "}
+                  <Text>Posted by {post.creator.username}</Text>
+                  <Text mt={4}>{post.textSnippet}</Text>
+                </Box>
+              </Flex>
             </Box>
           ))}
         </Stack>
