@@ -137,20 +137,47 @@ export class PostResolver {
     const isUpvote = value !== -1;
     const vote = isUpvote ? 1 : -1;
 
-    getConnection().query(
-      `
-      start transaction;
+    const voteItem = await Vote.findOne({ where: { postId, userId } });
+    if (voteItem && voteItem.value !== vote) {
+      await getConnection().transaction(async (tm) => {
+        tm.query(
+          `
+          update "vote"
+          set value = $1
+          where postId = $2 and userId = $3;
+          `,
+          [vote, postId, userId]
+        );
 
-      insert into "vote" ("value", "postId", "userId")
-      values (${vote}, ${postId}, ${userId});
+        tm.query(
+          `
+          update "post"
+          set points = points + $1
+          where id = $2;
+          `,
+          [2 * vote, postId]
+        );
+      });
+    } else if (!voteItem) {
+      await getConnection().transaction(async (tm) => {
+        tm.query(
+          `
+          insert into "vote" ("value", "postId", "userId")
+          values ($1, $2, $3);
+          `,
+          [vote, postId, userId]
+        );
 
-      update "post"
-      set points = points + ${vote}
-      where id = ${postId};
-
-      commit;
-      `
-    );
+        tm.query(
+          `
+          update "post"
+          set points = points + $1
+          where id = $2;
+          `,
+          [vote, postId]
+        );
+      });
+    }
 
     return true;
   }
