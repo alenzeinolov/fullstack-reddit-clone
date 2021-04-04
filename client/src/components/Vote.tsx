@@ -18,7 +18,11 @@ const Vote: React.FC<VoteProps> = ({ post }) => {
         aria-label="Upvote"
         icon={<ChevronUpIcon />}
         isLoading={loadingState === "upvote-loading"}
+        colorScheme={post.voteStatus === 1 ? "green" : undefined}
         onClick={async () => {
+          if (post.voteStatus === 1) {
+            return;
+          }
           setLoadingState("upvote-loading");
           await vote({ postId: post.id, value: 1 });
           setLoadingState("not-loading");
@@ -29,7 +33,11 @@ const Vote: React.FC<VoteProps> = ({ post }) => {
         aria-label="Downvote"
         icon={<ChevronDownIcon />}
         isLoading={loadingState === "downvote-loading"}
+        colorScheme={post.voteStatus === -1 ? "red" : undefined}
         onClick={async () => {
+          if (post.voteStatus === -1) {
+            return;
+          }
           setLoadingState("downvote-loading");
           await vote({ postId: post.id, value: -1 });
           setLoadingState("not-loading");

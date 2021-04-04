@@ -3,7 +3,6 @@ import {
   Button,
   Flex,
   Heading,
-  IconButton,
   Link,
   Stack,
   Text,
@@ -14,7 +13,6 @@ import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { usePostsQuery } from "../generated/graphql";
 import { createUrqlClient } from "../utils/createUrqlClient";
-import { ChevronUpIcon, ChevronDownIcon } from "@chakra-ui/icons";
 import Vote from "../components/Vote";
 
 const Index = () => {
