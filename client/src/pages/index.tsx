@@ -46,7 +46,11 @@ const Index = () => {
               <Flex>
                 <Vote post={post} />
                 <Box>
-                  <Heading fontSize="xl">{post.title}</Heading>{" "}
+                  <NextLink href="/post/[id]" as={`/post/${post.id}`}>
+                    <Link>
+                      <Heading fontSize="xl">{post.title}</Heading>{" "}
+                    </Link>
+                  </NextLink>
                   <Text>Posted by {post.creator.username}</Text>
                   <Text mt={4}>{post.textSnippet}</Text>
                 </Box>
