@@ -3,7 +3,6 @@ import {
   Button,
   Flex,
   Heading,
-  IconButton,
   Link,
   Stack,
   Text,
@@ -11,15 +10,11 @@ import {
 import { withUrqlClient } from "next-urql";
 import NextLink from "next/link";
 import React, { useState } from "react";
+import EditDeleteButtons from "../components/EditDeleteButtons";
 import Layout from "../components/Layout";
-import {
-  useDeletePostMutation,
-  useMeQuery,
-  usePostsQuery,
-} from "../generated/graphql";
-import { createUrqlClient } from "../utils/createUrqlClient";
 import Vote from "../components/Vote";
-import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
+import { usePostsQuery } from "../generated/graphql";
+import { createUrqlClient } from "../utils/createUrqlClient";
 
 const Index = () => {
   const [variables, setVariables] = useState({
@@ -27,11 +22,9 @@ const Index = () => {
     cursor: null as null | string,
   });
 
-  const [{ data: meData }] = useMeQuery();
   const [{ data, fetching }] = usePostsQuery({
     variables,
   });
-  const [, deletePost] = useDeletePostMutation();
 
   if (!fetching && !data) {
     return <div>No data for some reason...</div>;
@@ -59,28 +52,10 @@ const Index = () => {
                       <Text flex={1} mt={4}>
                         {post.textSnippet}
                       </Text>
-                      {meData?.me?.id !== post.creator.id ? null : (
-                        <Box>
-                          <NextLink
-                            href="/post/edit/[id]"
-                            as={`/post/edit/${post.id}`}
-                          >
-                            <IconButton
-                              as={Link}
-                              mr={4}
-                              aria-label="Edit Post"
-                              colorScheme="gray"
-                              icon={<EditIcon />}
-                            />
-                          </NextLink>
-                          <IconButton
-                            aria-label="Delete Post"
-                            colorScheme="gray"
-                            icon={<DeleteIcon />}
-                            onClick={() => deletePost({ id: post.id })}
-                          />
-                        </Box>
-                      )}
+                      <EditDeleteButtons
+                        id={post.id}
+                        creatorId={post.creator.id}
+                      />
                     </Flex>
                   </Box>
                 </Flex>
