@@ -14,6 +14,7 @@ import {
 } from "type-graphql";
 import { getConnection } from "typeorm";
 import { Post } from "../entities/Post";
+import { User } from "../entities/User";
 import { Vote } from "../entities/Vote";
 import { isAuth } from "../middleware/isAuth";
 import { MyContext } from "../types";
@@ -37,8 +38,13 @@ class PostInput {
 @Resolver(Post)
 export class PostResolver {
   @FieldResolver(() => String)
-  textSnippet(@Root() root: Post) {
-    return root.text.slice(0, 50);
+  textSnippet(@Root() post: Post) {
+    return post.text.slice(0, 50);
+  }
+
+  @FieldResolver(() => User)
+  creator(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+    return userLoader.load(post.creatorId);
   }
 
   @Query(() => PaginatedPosts)
@@ -65,18 +71,12 @@ export class PostResolver {
     const posts = await getConnection().query(
       `
       select p.*,
-      json_build_object(
-        'id', u.id,
-        'username', u.username,
-        'email', u.email
-      ) creator,
       ${
         req.session.userId
           ? `(select value from "vote" where "userId" = $2 and "postId" = p.id) "voteStatus"`
           : 'null as "voteStatus"'
       }
       from post p
-      inner join "user" u on u.id = p."creatorId"
       ${cursor ? `where p."createdAt" < $${cursorIdx}` : ""}
       order by "createdAt" DESC
       limit $1
@@ -104,7 +104,7 @@ export class PostResolver {
 
   @Query(() => Post, { nullable: true })
   async post(@Arg("id", () => Int) id: number): Promise<Post | undefined> {
-    return Post.findOne(id, { relations: ["creator"] });
+    return Post.findOne(id);
   }
 
   @Mutation(() => Post)
