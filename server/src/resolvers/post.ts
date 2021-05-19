@@ -47,9 +47,21 @@ export class PostResolver {
     return userLoader.load(post.creatorId);
   }
 
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(@Root() post: Post, @Ctx() { req, voteLoader }: MyContext) {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const vote = await voteLoader.load({
+      postId: post.id,
+      userId: req.session.userId,
+    });
+    return vote ? vote.value : null;
+  }
+
   @Query(() => PaginatedPosts)
   async posts(
-    @Ctx() { req }: MyContext,
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => String, { nullable: true }) cursor: string | null
   ): Promise<PaginatedPosts> {
@@ -58,26 +70,15 @@ export class PostResolver {
 
     const replacements: any[] = [fakeLimit];
 
-    if (req.session.userId) {
-      replacements.push(req.session.userId);
-    }
-
-    let cursorIdx = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
-      cursorIdx = replacements.length;
     }
 
     const posts = await getConnection().query(
       `
-      select p.*,
-      ${
-        req.session.userId
-          ? `(select value from "vote" where "userId" = $2 and "postId" = p.id) "voteStatus"`
-          : 'null as "voteStatus"'
-      }
+      select p.*
       from post p
-      ${cursor ? `where p."createdAt" < $${cursorIdx}` : ""}
+      ${cursor ? `where p."createdAt" < $2` : ""}
       order by "createdAt" DESC
       limit $1
       `,

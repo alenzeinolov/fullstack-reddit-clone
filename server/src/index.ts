@@ -18,6 +18,7 @@ import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
 import { Vote } from "./entities/Vote";
 import { createUserLoader } from "./utils/createUserLoader";
+import { createVoteLoader } from "./utils/createVoteLoader";
 
 const main = async () => {
   const conn = await createConnection({
@@ -68,6 +69,7 @@ const main = async () => {
       res,
       redis,
       userLoader: createUserLoader(),
+      voteLoader: createVoteLoader(),
     }),
   });
 
